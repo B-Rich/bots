@@ -1,0 +1,33 @@
+
+
+program ::= decList
+
+decList ::=
+	DEFAULT action ';'
+	| declaration ';'
+	| declaration ';' decList
+
+declaration ::= 'IF' condition 'THEN' action
+
+condition ::= 
+	'(' condition ')'
+	| condition 'AND' condition
+	| condition 'OR' condition
+	| 'NOT' condition
+	| 'SENSOR' '(' int ',' int ')' '=' sensorTypes
+	| 'COINFLIP'
+	| 'DICE' arithOp int
+
+sensorTypes ::= 'WALL' | 'BOT' | 'ENEMY' | 'FLOOR' | 'FRIEND'
+
+arithOp ::= '<' | '>' | '=' | '<=' | '>='
+
+action ::= movement | oneTokenAction
+
+movement ::= 'MOVE' moveDirection | 'TURN' turnDirection
+
+moveDirection ::= 'FORWARD' | 'BACKWARD' | 'LEFT' | 'RIGHT'
+
+turnDirection ::= 'LEFT' | 'RIGHT'
+
+oneTokenAction ::= 'SHOOT' | 'WAIT'
