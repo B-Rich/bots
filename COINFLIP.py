@@ -22,11 +22,28 @@ class CP_Parser :
         for sc in cls.special_characters + cls.arithOp :
             code = code.replace(sc,' {} '.format(sc))
         code = code.replace('\n',' ')
-        return code.strip().split()
+        return map(lambda s : s.strip().split(), code.strip().split(';'))
         
 
     @staticmethod
     def parse_code(code) :
+        i = 0
+        program = []
+        slices = CP_Parser.tokenize(code)
+        while i < len(slices) - 1 :
+            if i == len(slices) - 2 and slices[i][0] == 'DEFAULT' :
+                program.append( ('True',CP_Parser.parse_action(slices[i][1:])) )
+            else :
+                program.append( CP_Parser.parse_decl(slices[i]) )
+            i += 1
+
+        if slices[i] != [] :
+            raise CP_Exception("Program must end with a semicolon")
+
+        return program
+            
+            
+        '''
         tokens = CP_Parser.tokenize(code)
         program = []
         i = 0
@@ -38,6 +55,7 @@ class CP_Parser :
             j += 1
 
         return program
+        '''
             
     @staticmethod
     def parse_decl(tokens) :
@@ -88,7 +106,7 @@ class CP_Parser :
             except ValueError :
                 raise CP_Exception("Incorrect condition")
             return "self.dice {} {}".format(tokens[1],tokens[2])
-        elif len(tokens) == 8 and tokens[0] == 'SENSOR' and tokens[1] == '(' and tokens[3] == ',' tokens[5] == ')' and tokens[6] == '=' and tokens[7] in cls.sensorTypes :
+        elif len(tokens) == 8 and tokens[0] == 'SENSOR' and tokens[1] == '(' and tokens[3] == ','  and tokens[5] == ')' and tokens[6] == '=' and tokens[7] in cls.sensorTypes :
             try :
                 x = str(int(tokens[2]))
                 y = str(int(tokens[4]))
@@ -109,7 +127,7 @@ class CP_Parser :
 
         elif len(tokens) == 2 :
             t1,t2 = tokens
-            if (t1 == 'MOVE' and t2 in cls.moveDirection]) or (t1 == 'TURN' and t2 in cls.turnDirection) :
+            if (t1 == 'MOVE' and t2 in cls.moveDirection) or (t1 == 'TURN' and t2 in cls.turnDirection) :
                 return "self.action = '{} {}'".format(t1,t2)
             else :
                 raise CP_Exception("Incorrect action")
