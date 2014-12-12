@@ -89,9 +89,11 @@ class Game :
         destinations = {}
         moving_bots = [bot for bot in self.bots if bot.action.startswith('MOVE')]
         # destination of not moving bots is their actual position
-        for bot in [b for b in self.bots if not bot.action.startswith('MOVE')] :
+        for bot in [b for b in self.bots if not b.action.startswith('MOVE')] :
             destinations[bot.position] = [bot]
 
+
+        print "destinations before move: "+str(destinations.keys())
         for bot in moving_bots :
 
             if bot.action.endswith('FORWARD') :
@@ -127,6 +129,8 @@ class Game :
         # when at least 2 bots collide
         # when the destination is outside the map or is a wall
 
+        print "destinations before crashes: "+str(destinations.keys())
+
         crashes = []
         for d in destinations :
             if len(destinations[d]) > 1 : # two or more bot crash on the same destination
@@ -140,7 +144,7 @@ class Game :
             for bot in destinations[crash] :
                 bot.status = 'CRASHED'
                 
-        print destinations
+        print "destinations before shooting: "+str(destinations.keys())
         # evaluates the SHOOT actions
         shooting_bots = [bot for bot in self.bots if bot.action == 'SHOOT' and bot.status == 'OPERATIVE']
         for bot in shooting_bots :
@@ -178,6 +182,7 @@ class Game :
             else :
                 raise ValueError("Direction to turn not in [LEFT,RIGHT]")
 
+        print "destinations after turn: "+str(destinations.keys())
         for d in destinations :
             for bot in destinations[d] :
                 if bot.status == 'OPERATIVE' :
@@ -236,6 +241,7 @@ class Bot :
                 if eval(condition) :
                     exec(action)
                     return
+            self.action = 'WAIT'
         except BotException :
             self.status = 'SYS FAULT'
 
@@ -261,21 +267,25 @@ if __name__ == '__main__' :
     smap = [[1]*7] + [[1] + [0]*5 + [1]]*5 + [[1]*7]
     stage = Stage(smap)
 
-    g = Game(stage,clear_arena=False)
+    g = Game(stage,clear_arena=True)
     bot1 = Bot(prog1,"player1",g,position=(1,1),orientation=270)
+
     bot2 = Bot(prog1,"player1",g,position=(5,1),orientation=270)
     bot3 = Bot(prog2,"player2",g,position=(1,5),orientation=90)
     bot4 = Bot(prog2,"player2",g,position=(5,5),orientation=90)
 
     g.bots = [bot1,bot2,bot3,bot4]
+
     from os import system
     from time import sleep
-    system('clear')
+#    system('clear')
     print g.prettyPrint()
 
-    
-    while not g.gameOver() :
-        sleep(1)
+    while True :
+#    while not g.gameOver() :
+
+        #sleep(1)
+        raw_input()
         g.turn()
-        system('clear')
+#        system('clear')
         print g.prettyPrint()
