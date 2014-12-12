@@ -102,9 +102,11 @@ class CP_Parser :
             return "self.coinflip"
         elif len(tokens) == 3 and tokens[0] == 'DICE' and tokens[1] in cls.arithOp :
             try :
-                tokens[2] = str(int(tokens[3]))
+                tokens[2] = str(int(tokens[2]))
             except ValueError :
                 raise CP_Exception("Incorrect condition")
+            if tokens[1] == '=' :
+                tokens[1] = '=='
             return "self.dice {} {}".format(tokens[1],tokens[2])
         elif len(tokens) == 8 and tokens[0] == 'SENSOR' and tokens[1] == '(' and tokens[3] == ','  and tokens[5] == ')' and tokens[6] == '=' and tokens[7] in cls.sensorTypes :
             try :

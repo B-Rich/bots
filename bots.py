@@ -1,30 +1,30 @@
 from random import randint
 
-class Stage :
-    def __init__(self,stagemap) :
+class Arena :
+    def __init__(self,arenamap) :
         
-        if len(set(map(len,stagemap))) != 1 :
+        if len(set(map(len,arenamap))) != 1 :
             raise ValueError("Wrong map format")
 
-        self.size = len(stagemap[0]),len(stagemap)
+        self.size = len(arenamap[0]),len(arenamap)
         self.map = {}
         for y in xrange(self.size[1]) :
             for x in xrange(self.size[0]) :
-                self.map[(x,y)] = 'FLOOR' if stagemap[y][x] == 0 else 'WALL'
+                self.map[(x,y)] = 'FLOOR' if arenamap[y][x] == 0 else 'WALL'
 
 class Game :
 
-    def __init__(self,stage,clear_arena=True) :
-        self.stage = stage
+    def __init__(self,arena,clear_arena=True) :
+        self.arena = arena
         self.clear_arena = clear_arena
 
     def prettyPrint(self) :
         out = []
         
-        for y in xrange(self.stage.size[1]) :
+        for y in xrange(self.arena.size[1]) :
             out.append([])
-            for x in xrange(self.stage.size[0]) :
-                if self.stage.map[(x,y)] == 'WALL' :
+            for x in xrange(self.arena.size[0]) :
+                if self.arena.map[(x,y)] == 'WALL' :
                     out[-1].append('#')
                 else :
                     out[-1].append(' ')
@@ -93,7 +93,7 @@ class Game :
             destinations[bot.position] = [bot]
 
 
-        print "destinations before move: "+str(destinations.keys())
+#        print "destinations before move: "+str(destinations.keys())
         for bot in moving_bots :
 
             if bot.action.endswith('FORWARD') :
@@ -129,22 +129,22 @@ class Game :
         # when at least 2 bots collide
         # when the destination is outside the map or is a wall
 
-        print "destinations before crashes: "+str(destinations.keys())
+#        print "destinations before crashes: "+str(destinations.keys())
 
         crashes = []
         for d in destinations :
             if len(destinations[d]) > 1 : # two or more bot crash on the same destination
                 crashes.append(d)
-            elif self.stage.map[d] == 'WALL' :
+            elif self.arena.map[d] == 'WALL' :
                 crashes.append(d)
-            elif d[0] < 0 or d[1] < 0 or d[0] >= self.stage.size[0] or d[1] >= self.stage.size[1] : # one or more bots are moving outside the map
+            elif d[0] < 0 or d[1] < 0 or d[0] >= self.arena.size[0] or d[1] >= self.arena.size[1] : # one or more bots are moving outside the map
                 crashes.append(d)
 
         for crash in crashes :
             for bot in destinations[crash] :
                 bot.status = 'CRASHED'
                 
-        print "destinations before shooting: "+str(destinations.keys())
+#        print "destinations before shooting: "+str(destinations.keys())
         # evaluates the SHOOT actions
         shooting_bots = [bot for bot in self.bots if bot.action == 'SHOOT' and bot.status == 'OPERATIVE']
         for bot in shooting_bots :
@@ -163,11 +163,9 @@ class Game :
             target = bot.position
             for i in xrange(bot.fire_range) :
                 target = (target[0] + step[0],target[1] + step[1])
-                print target
-                if self.stage.map[target] == 'WALL' :
+                if self.arena.map[target] == 'WALL' :
                     break
                 elif target in destinations and len(destinations[target]) == 1 : # if there's only one coming, shoots it, otherwise they'll crash before
-                    print "bau"
                     destinations[target][0].status = 'HIT'
                     break
 
@@ -182,7 +180,7 @@ class Game :
             else :
                 raise ValueError("Direction to turn not in [LEFT,RIGHT]")
 
-        print "destinations after turn: "+str(destinations.keys())
+#        print "destinations after turn: "+str(destinations.keys())
         for d in destinations :
             for bot in destinations[d] :
                 if bot.status == 'OPERATIVE' :
@@ -218,9 +216,9 @@ class Bot :
             bias = y,x
 
         abs_pos = (self.position[0] + bias[0],self.position[1] + bias[1])
-        if abs_pos[0] < 0 or abs_pos[1] < 0 or abs_pos[0] >= self.game.stage.size[0] or abs_pos[1] >= self.game.stage.size[1] :
+        if abs_pos[0] < 0 or abs_pos[1] < 0 or abs_pos[0] >= self.game.arena.size[0] or abs_pos[1] >= self.game.arena.size[1] :
             return 'WALL'
-        if self.game.stage.map[abs_pos] != 'WALL' :
+        if self.game.arena.map[abs_pos] != 'WALL' :
             retStr = 'FLOOR'
             for bot in self.game.bots :
                 if bot.position == abs_pos :
@@ -230,7 +228,7 @@ class Bot :
                     else :
                         retStr += ' FRIEND'
             return retStr
-        return self.game.stage.map[abs_pos]
+        return self.game.arena.map[abs_pos]
         
         
     def execute(self) :
@@ -264,28 +262,36 @@ if __name__ == '__main__' :
     with open(path2,'r') as f :
         prog2 = COINFLIP.CP_Parser.parse_code(f.read())
 
-    smap = [[1]*7] + [[1] + [0]*5 + [1]]*5 + [[1]*7]
-    stage = Stage(smap)
+    x_size,y_size = 20,20
+    bots_par_team = 5
+    smap = [[1]*x_size] + [[1] + [0]*(x_size - 2) + [1]]*(y_size - 2) + [[1]*x_size]
+    arena = Arena(smap)
 
-    g = Game(stage,clear_arena=True)
-    bot1 = Bot(prog1,"player1",g,position=(1,1),orientation=270)
+    progs = {'tom' : prog1, 'jerry' : prog2}
 
-    bot2 = Bot(prog1,"player1",g,position=(5,1),orientation=270)
-    bot3 = Bot(prog2,"player2",g,position=(1,5),orientation=90)
-    bot4 = Bot(prog2,"player2",g,position=(5,5),orientation=90)
+    g = Game(arena,clear_arena=True)
 
-    g.bots = [bot1,bot2,bot3,bot4]
-
+    g.bots = []
+    used_pos = {}
+    for i in xrange(bots_par_team) :
+        for player in progs.keys() :
+            pos = None
+            while pos == None or pos in used_pos :
+                pos = (randint(1,x_size - 2), randint(1,y_size - 2))
+            orient = randint(0,3) * 90
+            g.bots.append( Bot(progs[player],player,g,position=pos,orientation=orient) )
+    
     from os import system
     from time import sleep
-#    system('clear')
+    system('clear')
     print g.prettyPrint()
 
-    while True :
-#    while not g.gameOver() :
+    while not g.gameOver() :
 
-        #sleep(1)
-        raw_input()
+        sleep(0.5)
+#        raw_input()
         g.turn()
-#        system('clear')
+        system('clear')
         print g.prettyPrint()
+
+    print "\n{} WON THE MATCH!".format(g.bots[0].player)
