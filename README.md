@@ -1,3 +1,2 @@
-![alt ](imgs/bots.png)
-
-bots game
+![alt ](imgs/bots_small.png)
+a game with robots
