@@ -3,7 +3,7 @@
 program ::= decList
 
 decList ::=
-	DEFAULT action ';'
+	'DEFAULT' action ';'
 	| declaration ';'
 	| declaration ';' decList
 
