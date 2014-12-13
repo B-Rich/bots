@@ -263,7 +263,7 @@ if __name__ == '__main__' :
         prog2 = COINFLIP.CP_Parser.parse_code(f.read())
 
     x_size,y_size = 20,20
-    bots_par_team = 5
+    bots_par_team = 10
     smap = [[1]*x_size] + [[1] + [0]*(x_size - 2) + [1]]*(y_size - 2) + [[1]*x_size]
     arena = Arena(smap)
 
