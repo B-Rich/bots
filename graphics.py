@@ -1,65 +1,130 @@
-
+from time import sleep 
 import cocos
 from cocos.actions import *
 
 from bots import *
 
-class TitleScreen(cocos.layer.ColorLayer) :
+class TitleScreen(cocos.scene.Scene) :
     
     def __init__(self,screen_res) :
-        super( TitleScreen, self ).__init__(255,255,255,255)
-        
+        super( TitleScreen, self ).__init__()
+
+        bgLayer = cocos.layer.ColorLayer(255,255,255,255)
         logo = cocos.sprite.Sprite("imgs/bots.png")
-        self.add( logo )
         logo.position = screen_res[0]/2,screen_res[1]/2
+        bgLayer.add( logo )
+
+        self.add( bgLayer )
 
 
-class FloorLayer(cocos.layer.ColorLayer) :
+class BotSprite(cocos.sprite.Sprite) :
     
-    sprite_size = 20,20
+    def __init__(self,image) :
+        super( BotSprite, self ).__init__(image)
+        self.busy = False
 
-    def __init__(self,size) :
-        super( FloorLayer, self ).__init__(128,128,128,255)
+    def free(self) :
+        self.busy = False
 
-        self.size = size
-        self.images = ["imgs/floor.png"]
-        self.sprites = {}
-        for y in xrange(size[1]) :
-            for x in xrange(size[0]) :
-                self.sprites[(x,y)] = cocos.sprite.Sprite(self.images[0])
-                self.sprites[(x,y)].position = x * self.sprite_size[0] + (self.sprite_size[0]/2),y * self.sprite_size[1] + (self.sprite_size[1]/2)
-                self.add( self.sprites[(x,y)] )
-
-class WallLayer(cocos.layer.Layer) :
+class GameScreen(cocos.scene.Scene) :
     
-    sprite_size = 20,20
+    tile_size = 20,20
+    move_time = 1
+    turn_time = 1
 
-    def __init__(self,arena) :
-        super( WallLayer, self ).__init__()
-        self.images = ["imgs/wall.png"]
-        self.sprites = {}
-        for x,y in arena.keys() :
-            if arena[(x,y)] == 'WALL' :
-                self.sprites[(x,y)] = cocos.sprite.Sprite(self.images[0])
-                self.sprites[(x,y)].position = x * self.sprite_size[0] + (self.sprite_size[0]/2),y * self.sprite_size[1] + (self.sprite_size[1]/2)
-                self.add( self.sprites[(x,y)] )
+    def __init__(self,game) :
 
-class BotLayer(cocos.layer.Layer) :
+        super( GameScreen, self ).__init__()
+
+        self.game = game
+        
+        # loads the resources
+        self.loadResources()
+        
+        self.drawTerrain()
+        self.drawBots()
+
+        # schedules updates
+        self.schedule(self.update)
+        
+
+        # adds the layers to the scene
+        self.add(self.floorLayer)
+        self.add(self.wallLayer)
+        self.add(self.botLayer)
+
+    def loadResources(self) :
+
+        imageFolder = 'imgs/'
+        
+        # loads terrain images
+        self.floorImage = imageFolder + 'floor.png'
+        self.wallImage = imageFolder + 'wall.png'
+
+        # loads bot images
+        self.botImages = {}
+        image_prefixes = ['blue','green','purple','yellow']
+        for i,player in enumerate(self.game.players) :
+            self.botImages[player] = imageFolder + '{}_bot.png'.format(image_prefixes[i])
+
+    def drawTerrain(self) :
+
+        # draws the floor..
+        self.floorLayer = cocos.layer.ColorLayer(128,128,128,255)
+        self.floorLayer.sprites = {}
+        ts = self.tile_size
+        for y in xrange(self.game.arena.size[1]) :
+            for x in xrange(self.game.arena.size[0]) :
+                self.floorLayer.sprites[(x,y)] = cocos.sprite.Sprite(self.floorImage)
+                self.floorLayer.sprites[(x,y)].position = x * ts[0] + (ts[0]/2),y * ts[1] + (ts[1]/2)
+                self.floorLayer.add( self.floorLayer.sprites[(x,y)] )
+
+        # ..and the walls
+        self.wallLayer = cocos.layer.Layer()
+        self.wallLayer.sprites = {}
+        for x,y in self.game.arena.map.keys() :
+            if self.game.arena.map[(x,y)] == 'WALL' :
+                self.wallLayer.sprites[(x,y)] = cocos.sprite.Sprite(self.wallImage)
+                self.wallLayer.sprites[(x,y)].position = x * ts[0] + (ts[0]/2),y * ts[1] + (ts[1]/2)
+                self.wallLayer.add( self.wallLayer.sprites[(x,y)] )
+
+    def drawBots(self) :
+        
+        self.botLayer = cocos.layer.Layer()
+        
+        self.botLayer.sprites = {}
+        ts = self.tile_size
+        for i,bot in enumerate(self.game.bots) :
+            self.botLayer.sprites[i] = BotSprite( self.botImages[bot.player] )
+            self.botLayer.sprites[i].position = ts[0] * bot.position[0] + ts[0] / 2, ts[1] * bot.position[1] + ts[1] / 2
+            self.botLayer.sprites[i].do ( RotateBy(bot.orientation,0.0) )
+            self.botLayer.add( self.botLayer.sprites[i] )
+
+
+    def update(self,timedelta) :
+        
+        if len([sprite for sprite in self.botLayer.sprites.values() if sprite.busy == True]) > 0 :
+            print "i have to wait"
+            return
+
+        self.game.turn()
+
+        ts = self.tile_size
+        for i,bot in enumerate(self.game.bots) :
+            bot.busy = True
+            # updates just the operative bots
+            if bot.status == 'OPERATIVE' :
+
+                if bot.action.startswith('MOVE') :
+                    x = bot.position[0] * ts[0] + ts[0]/2
+                    y = bot.position[1] * ts[1] + ts[1]/2
+                    self.botLayer.sprites[i].do ( MoveTo((x,y),self.move_time) + cocos.actions.CallFunc( self.botLayer.sprites[i].free ))
+                elif bot.action == 'TURN LEFT' :
+                    self.botLayer.sprites[i].do ( RotateBy(90,self.turn_time) + cocos.actions.CallFunc( self.botLayer.sprites[i].free ))
+                elif bot.action == 'TURN RIGHT' :
+                    self.botLayer.sprites[i].do ( RotateBy(-90,self.turn_time) + cocos.actions.CallFunc( self.botLayer.sprites[i].free ))
+
     
-    sprite_size = 20,20
-    
-    def __init__(self,bots) :
-        super( BotLayer, self ).__init__()
-        self.images = ["imgs/blue_bot.png"]
-        self.sprites = {}
-        for b in bots :
-            
-            self.sprites[(x,y)] = cocos.sprite.Sprite(self.images[0])
-            self.sprites[(x,y)].position = x * self.sprite_size[0] + (self.sprite_size[0]/2),y * self.sprite_size[1] + (self.sprite_size[1]/2)
-            self.add( self.sprites[(x,y)] )
-    
-
-
 
 if __name__ == '__main__' :
     screen_res = 800,600
@@ -78,5 +143,7 @@ if __name__ == '__main__' :
     scene = cocos.scene.Scene(fl)
     scene.add(wa)
     
-    cocos.director.director.run(scene)
+    cocos.director.director.run(mv)
     
+
+

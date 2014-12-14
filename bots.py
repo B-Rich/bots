@@ -14,9 +14,13 @@ class Arena :
 
 class Game :
 
-    def __init__(self,arena,clear_arena=True) :
+    def __init__(self,arena,bots) :
         self.arena = arena
-        self.clear_arena = clear_arena
+        self.bots = bots
+        self.players = list(set([b.player for b in self.bots]))
+
+        for bot in self.bots :
+            bot.game = self
 
     def prettyPrint(self) :
         out = []
@@ -61,14 +65,9 @@ class Game :
     def turn(self) :
         self.executePrograms()
         self.evaluateActions()
-        if self.clear_arena :
-            self.clearUnoperativeBots()
 
     def gameOver(self) :
         return len(set([bot.player for bot in self.bots if bot.status == 'OPERATIVE'])) <= 1
-
-    def clearUnoperativeBots(self) :
-        self.bots = [b for b in self.bots if b.status == 'OPERATIVE']
 
     def executePrograms(self) :
         for bot in self.bots :
@@ -85,11 +84,15 @@ class Game :
 
         '''
 
+        # bots to evaluate are those that start the turn as operative
+        bots_to_eval = [b for b in self.bots if b.status == 'OPERATIVE']
+
+
         # evaluates MOVE actions
         destinations = {}
-        moving_bots = [bot for bot in self.bots if bot.action.startswith('MOVE')]
+        moving_bots = [bot for bot in bots_to_eval if bot.action.startswith('MOVE')]
         # destination of not moving bots is their actual position
-        for bot in [b for b in self.bots if not b.action.startswith('MOVE')] :
+        for bot in [b for b in bots_to_eval if not b.action.startswith('MOVE')] :
             destinations[bot.position] = [bot]
 
 
@@ -146,7 +149,7 @@ class Game :
                 
 #        print "destinations before shooting: "+str(destinations.keys())
         # evaluates the SHOOT actions
-        shooting_bots = [bot for bot in self.bots if bot.action == 'SHOOT' and bot.status == 'OPERATIVE']
+        shooting_bots = [bot for bot in bots_to_eval if bot.action == 'SHOOT']
         for bot in shooting_bots :
 
             if bot.orientation == 0 :
@@ -171,7 +174,7 @@ class Game :
 
 
         # evaluates the TURN actions
-        turning_bots = [bot for bot in self.bots if bot.action.startswith('TURN') and bot.status == 'OPERATIVE']
+        turning_bots = [bot for bot in bots_to_eval if bot.action.startswith('TURN')]
         for bot in turning_bots :
             if bot.action.endswith('LEFT') :
                 bot.orientation = (bot.orientation + 90) % 360
@@ -187,7 +190,7 @@ class Game :
                     bot.position = d
     
 class Bot :
-    def __init__(self,program,player,game,position=None,orientation=None,FOV=2,fire_range=4) :
+    def __init__(self,program,player,game=None,position=None,orientation=None,FOV=2,fire_range=4) :
         self.program = program
         self.player = player
         self.game = game
@@ -221,7 +224,7 @@ class Bot :
         if self.game.arena.map[abs_pos] != 'WALL' :
             retStr = 'FLOOR'
             for bot in self.game.bots :
-                if bot.position == abs_pos :
+                if bot.position == abs_pos and bot.status == 'OPERATIVE' :
                     retStr += ' BOT'
                     if bot.player != self.player :
                         retStr += ' ENEMY'
@@ -269,9 +272,7 @@ if __name__ == '__main__' :
 
     progs = {'tom' : prog1, 'jerry' : prog2}
 
-    g = Game(arena,clear_arena=True)
-
-    g.bots = []
+    bots = []
     used_pos = {}
     for i in xrange(bots_par_team) :
         for player in progs.keys() :
@@ -279,8 +280,10 @@ if __name__ == '__main__' :
             while pos == None or pos in used_pos :
                 pos = (randint(1,x_size - 2), randint(1,y_size - 2))
             orient = randint(0,3) * 90
-            g.bots.append( Bot(progs[player],player,g,position=pos,orientation=orient) )
+            bots.append( Bot(progs[player],player,position=pos,orientation=orient) )
     
+    g = Game(arena,bots)
+
     from os import system
     from time import sleep
     system('clear')
