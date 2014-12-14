@@ -1,6 +1,7 @@
 from time import sleep 
 import cocos
 from cocos.actions import *
+from sprites import *
 
 from bots import *
 
@@ -16,21 +17,11 @@ class TitleScreen(cocos.scene.Scene) :
 
         self.add( bgLayer )
 
-
-class BotSprite(cocos.sprite.Sprite) :
-    
-    def __init__(self,image) :
-        super( BotSprite, self ).__init__(image)
-        self.busy = False
-
-    def free(self) :
-        self.busy = False
-
 class GameScreen(cocos.scene.Scene) :
     
     tile_size = 20,20
-    move_time = 1
-    turn_time = 1
+    move_time = 0.4
+    turn_time = 0.4
 
     def __init__(self,game) :
 
@@ -102,27 +93,34 @@ class GameScreen(cocos.scene.Scene) :
 
 
     def update(self,timedelta) :
-        
+
         if len([sprite for sprite in self.botLayer.sprites.values() if sprite.busy == True]) > 0 :
-            print "i have to wait"
             return
 
         self.game.turn()
 
         ts = self.tile_size
-        for i,bot in enumerate(self.game.bots) :
-            bot.busy = True
+        for i,bs in self.botLayer.sprites.items() :
             # updates just the operative bots
-            if bot.status == 'OPERATIVE' :
-
-                if bot.action.startswith('MOVE') :
-                    x = bot.position[0] * ts[0] + ts[0]/2
-                    y = bot.position[1] * ts[1] + ts[1]/2
-                    self.botLayer.sprites[i].do ( MoveTo((x,y),self.move_time) + cocos.actions.CallFunc( self.botLayer.sprites[i].free ))
-                elif bot.action == 'TURN LEFT' :
-                    self.botLayer.sprites[i].do ( RotateBy(90,self.turn_time) + cocos.actions.CallFunc( self.botLayer.sprites[i].free ))
-                elif bot.action == 'TURN RIGHT' :
-                    self.botLayer.sprites[i].do ( RotateBy(-90,self.turn_time) + cocos.actions.CallFunc( self.botLayer.sprites[i].free ))
+            if self.game.bots[i].status == 'OPERATIVE' :
+                bs.busy = True
+                if self.game.bots[i].action.startswith('MOVE') :
+                    x = self.game.bots[i].position[0] * ts[0] + ts[0]/2
+                    y = self.game.bots[i].position[1] * ts[1] + ts[1]/2
+                    bs.do ( MoveTo((x,y),self.move_time) + cocos.actions.CallFunc( bs.free ))
+                elif self.game.bots[i].action == 'TURN LEFT' :
+                    bs.do ( RotateBy(90,self.turn_time) + cocos.actions.CallFunc( bs.free ))
+                elif self.game.bots[i].action == 'TURN RIGHT' :
+                    bs.do ( RotateBy(-90,self.turn_time) + cocos.actions.CallFunc( bs.free ))
+                else :
+                    bs.busy = False
+            if self.game.bots[i].status == 'HIT' or self.game.bots[i].status == 'CRASHED' :
+                x = self.game.bots[i].position[0] * ts[0] + ts[0]/2
+                y = self.game.bots[i].position[1] * ts[1] + ts[1]/2
+                self.botLayer.add( Explosion((x,y)) )
+                bs.die()
+                self.botLayer.sprites.pop(i)
+                
 
     
 
@@ -132,8 +130,7 @@ if __name__ == '__main__' :
 
     mv = TitleScreen(screen_res)
 
-    x_size,y_size = 40,30
-
+    x_size,y_size = 20,20
     smap = [[1]*x_size] + [[1] + [0]*(x_size - 2) + [1]]*(y_size - 2) + [[1]*x_size]
     arena = Arena(smap)
 
