@@ -5,17 +5,32 @@ import pyglet
 
 class BotSprite(cocos.sprite.Sprite) :
     
-    def __init__(self,image) :
+    def __init__(self,image,orientation) :
         super( BotSprite, self ).__init__(image)
-        self.busy = False
+        self.busy = True
+        self.do ( RotateBy(-orientation,0.0) + CallFunc(self.free) )
 
     def free(self) :
         self.busy = False
 
     def die(self) :
         self.do(Hide())
+        self.kill()
 
+class Laser(cocos.sprite.Sprite) :
+    
+    def __init__(self,image,from_pos,to_pos) :
+        super( Laser, self ).__init__(image)
+        self.position = from_pos
 
+        self.scale = 1
+        self.schedule_interval(self.done_animation,0.5)
+        self.do(MoveTo(to_pos,0.4) | FadeOut(0.4))
+
+    def done_animation(self,timedelta):
+        self.kill()
+        
+        
 
 class Explosion(cocos.sprite.Sprite):
     animation = None

@@ -25,7 +25,7 @@ class Game :
     def prettyPrint(self) :
         out = []
         
-        for y in xrange(self.arena.size[1]) :
+        for y in xrange(self.arena.size[1]-1,-1,-1) :
             out.append([])
             for x in xrange(self.arena.size[0]) :
                 if self.arena.map[(x,y)] == 'WALL' :
@@ -113,11 +113,11 @@ class Game :
             if moving_dir == 0 :
                 step = (1,0)
             elif moving_dir == 90 :
-                step = (0,-1)
+                step = (0,1)
             elif moving_dir == 180 :
                 step = (-1,0)
             elif moving_dir == 270 :
-                step = (0,1)
+                step = (0,-1)
             else :
                 raise ValueError("Orientation ??")
 
@@ -155,11 +155,11 @@ class Game :
             if bot.orientation == 0 :
                 step = (1,0)
             elif bot.orientation == 90 :
-                step = (0,-1)
+                step = (0,1)
             elif bot.orientation == 180 :
                 step = (-1,0)
             elif bot.orientation == 270 :
-                step = (0,1)
+                step = (0,-1)
             else :
                 raise ValueError("Orientation not in [0,90,180,270]")
             
@@ -210,13 +210,13 @@ class Bot :
         
         
         if self.orientation == 0 :
-            bias = x,-y
+            bias = x,y
         elif self.orientation == 90 :
-            bias = -y,-x
+            bias = y,-x
         elif self.orientation == 180 :
-            bias = -x,y
+            bias = -x,-y
         elif self.orientation == 270 :
-            bias = y,x
+            bias = -y,x
 
         abs_pos = (self.position[0] + bias[0],self.position[1] + bias[1])
         if abs_pos[0] < 0 or abs_pos[1] < 0 or abs_pos[0] >= self.game.arena.size[0] or abs_pos[1] >= self.game.arena.size[1] :

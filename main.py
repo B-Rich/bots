@@ -17,8 +17,9 @@ if __name__ == '__main__' :
 
 
     x_size,y_size = 40,30
-    bots_par_team = 10
-    smap = [[1]*x_size] + [[1] + [0]*(x_size - 2) + [1]]*(y_size - 2) + [[1]*x_size]
+    bots_par_team = int(argv[3])
+    smap = [[1 for _ in xrange(x_size)]] + [[1] + [0 for _ in xrange(x_size - 2)] + [1] for _ in xrange(y_size - 2)] + [[1 for _ in xrange(x_size)]]
+    smap[-3][-3] = 1
     arena = Arena(smap)
 
     progs = {'tom' : prog1, 'jerry' : prog2}
@@ -30,7 +31,7 @@ if __name__ == '__main__' :
             pos = None
             while pos == None or pos in used_pos :
                 pos = (randint(1,x_size - 2), randint(1,y_size - 2))
-            orient = randint(0,3) * 90
+            orient = randint(0,3) * 90            
             bots.append( Bot(progs[player],player,position=pos,orientation=orient) )
     
     g = Game(arena,bots)

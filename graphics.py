@@ -58,6 +58,10 @@ class GameScreen(cocos.scene.Scene) :
         for i,player in enumerate(self.game.players) :
             self.botImages[player] = imageFolder + '{}_bot.png'.format(image_prefixes[i])
 
+        self.laserImages = []
+        for orient in [0,90,180,270] :
+            self.laserImages.append(imageFolder + 'laser_{}.png'.format(str(orient)))
+
     def drawTerrain(self) :
 
         # draws the floor..
@@ -86,9 +90,9 @@ class GameScreen(cocos.scene.Scene) :
         self.botLayer.sprites = {}
         ts = self.tile_size
         for i,bot in enumerate(self.game.bots) :
-            self.botLayer.sprites[i] = BotSprite( self.botImages[bot.player] )
+            self.botLayer.sprites[i] = BotSprite( self.botImages[bot.player], bot.orientation )
             self.botLayer.sprites[i].position = ts[0] * bot.position[0] + ts[0] / 2, ts[1] * bot.position[1] + ts[1] / 2
-            self.botLayer.sprites[i].do ( RotateBy(bot.orientation,0.0) )
+
             self.botLayer.add( self.botLayer.sprites[i] )
 
 
@@ -109,9 +113,24 @@ class GameScreen(cocos.scene.Scene) :
                     y = self.game.bots[i].position[1] * ts[1] + ts[1]/2
                     bs.do ( MoveTo((x,y),self.move_time) + cocos.actions.CallFunc( bs.free ))
                 elif self.game.bots[i].action == 'TURN LEFT' :
-                    bs.do ( RotateBy(90,self.turn_time) + cocos.actions.CallFunc( bs.free ))
-                elif self.game.bots[i].action == 'TURN RIGHT' :
                     bs.do ( RotateBy(-90,self.turn_time) + cocos.actions.CallFunc( bs.free ))
+                elif self.game.bots[i].action == 'TURN RIGHT' :
+                    bs.do ( RotateBy(90,self.turn_time) + cocos.actions.CallFunc( bs.free ))
+                elif self.game.bots[i].action == 'SHOOT' :
+                    from_pos = self.game.bots[i].position[0] * ts[0] + ts[0]/2, self.game.bots[i].position[1] * ts[1] + ts[1]/2
+                    to_pos = list(from_pos)
+                    if self.game.bots[i].orientation == 0 :
+                        to_pos[0] += self.game.bots[i].fire_range * ts[0]
+                    elif self.game.bots[i].orientation == 90 :
+                        to_pos[1] += self.game.bots[i].fire_range * ts[1]
+                    elif self.game.bots[i].orientation == 180 :
+                        to_pos[0] -= self.game.bots[i].fire_range * ts[0]
+                    elif self.game.bots[i].orientation == 270 :
+                        to_pos[1] -= self.game.bots[i].fire_range * ts[1]
+                    lim = self.laserImages[ self.game.bots[i].orientation / 90 ]
+                    self.botLayer.add( Laser(lim,from_pos,to_pos) )
+
+                    bs.busy = False
                 else :
                     bs.busy = False
             if self.game.bots[i].status == 'HIT' or self.game.bots[i].status == 'CRASHED' :
