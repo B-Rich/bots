@@ -19,13 +19,13 @@ class BotSprite(cocos.sprite.Sprite) :
 
 class Laser(cocos.sprite.Sprite) :
     
-    def __init__(self,image,from_pos,to_pos) :
+    def __init__(self,image,from_pos,to_pos,time) :
         super( Laser, self ).__init__(image)
         self.position = from_pos
 
-        self.scale = 1
-        self.schedule_interval(self.done_animation,0.5)
-        self.do(MoveTo(to_pos,0.4) | FadeOut(0.4))
+        # schedules the destruction of the sprite 1s after the animation
+        self.schedule_interval(self.done_animation,time + 1)
+        self.do(MoveTo(to_pos,time) | FadeOut(time))
 
     def done_animation(self,timedelta):
         self.kill()

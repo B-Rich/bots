@@ -20,8 +20,12 @@ class TitleScreen(cocos.scene.Scene) :
 class GameScreen(cocos.scene.Scene) :
     
     tile_size = 20,20
+    laser_init_bias = 5,5
+
+
     move_time = 0.4
     turn_time = 0.4
+    laser_time = 0.4
 
     def __init__(self,game) :
 
@@ -117,18 +121,22 @@ class GameScreen(cocos.scene.Scene) :
                 elif self.game.bots[i].action == 'TURN RIGHT' :
                     bs.do ( RotateBy(90,self.turn_time) + cocos.actions.CallFunc( bs.free ))
                 elif self.game.bots[i].action == 'SHOOT' :
-                    from_pos = self.game.bots[i].position[0] * ts[0] + ts[0]/2, self.game.bots[i].position[1] * ts[1] + ts[1]/2
+                    from_pos = [self.game.bots[i].position[0] * ts[0] + ts[0]/2, self.game.bots[i].position[1] * ts[1] + ts[1]/2]
                     to_pos = list(from_pos)
                     if self.game.bots[i].orientation == 0 :
+                        from_pos[0] += self.laser_init_bias[0]
                         to_pos[0] += self.game.bots[i].fire_range * ts[0]
                     elif self.game.bots[i].orientation == 90 :
+                        from_pos[1] += self.laser_init_bias[1]
                         to_pos[1] += self.game.bots[i].fire_range * ts[1]
                     elif self.game.bots[i].orientation == 180 :
+                        from_pos[0] -= self.laser_init_bias[0]
                         to_pos[0] -= self.game.bots[i].fire_range * ts[0]
                     elif self.game.bots[i].orientation == 270 :
+                        from_pos[1] -= self.laser_init_bias[1]
                         to_pos[1] -= self.game.bots[i].fire_range * ts[1]
                     lim = self.laserImages[ self.game.bots[i].orientation / 90 ]
-                    self.botLayer.add( Laser(lim,from_pos,to_pos) )
+                    self.botLayer.add( Laser(lim,from_pos,to_pos,self.laser_time) )
 
                     bs.busy = False
                 else :

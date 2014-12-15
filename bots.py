@@ -25,7 +25,7 @@ class Game :
     def prettyPrint(self) :
         out = []
         
-        for y in xrange(self.arena.size[1]-1,-1,-1) :
+        for y in xrange(self.arena.size[1]) :
             out.append([])
             for x in xrange(self.arena.size[0]) :
                 if self.arena.map[(x,y)] == 'WALL' :
@@ -49,6 +49,8 @@ class Game :
                 c = '*'
             out[b.position[1]][b.position[0]] = c
         
+        # mirrors the y axis
+        out.reverse()
         s_out = []
         for r in out :
             s_out.append( ''.join(r))
@@ -122,6 +124,28 @@ class Game :
                 raise ValueError("Orientation ??")
 
             next_pos = (bot.position[0] + step[0],bot.position[1] + step[1])
+
+            # manages the case * (see below)
+            for other_bot in moving_bots :
+                # if bot1 destination is held by bot2
+                if other_bot.position == next_pos :
+                    # calculates the moving direction of the other bot
+                    if other_bot.action.endswith('FORWARD') :
+                        moving_dir2 = other_bot.orientation
+                    elif other_bot.action.endswith('BACKWARD') :
+                        moving_dir2 = (other_bot.orientation + 180) % 360
+                    elif other_bot.action.endswith('LEFT') :
+                        moving_dir2 = (other_bot.orientation + 90) % 360
+                    elif other_bot.action.endswith('RIGHT') :
+                        moving_dir2 = (other_bot.orientation - 90) % 360
+                    else :
+                        raise ValueError("MOVE ??")
+                    
+                    # if bot2 direction is the opposite of bot1
+                    if (moving_dir + 180) % 360 == moving_dir2 :
+                        # bot1 won't move to next_pos, it will crash
+                        next_pos = bot.position
+                        bot.status = 'CRASHED'
                 
             if next_pos in destinations :
                 destinations[next_pos].append(bot)
@@ -129,10 +153,9 @@ class Game :
                 destinations[next_pos] = [bot]
         
         # computes the crashes happening :
-        # when at least 2 bots collide
+        # when at least 2 bots share the destination
+        # when a bot moves (a,b) -> (c,d) and another moves (c,d) -> (a,b) [ * this case is managed before ]
         # when the destination is outside the map or is a wall
-
-#        print "destinations before crashes: "+str(destinations.keys())
 
         crashes = []
         for d in destinations :
@@ -266,7 +289,7 @@ if __name__ == '__main__' :
         prog2 = COINFLIP.CP_Parser.parse_code(f.read())
 
     x_size,y_size = 20,20
-    bots_par_team = 10
+    bots_par_team = int(argv[3])
     smap = [[1]*x_size] + [[1] + [0]*(x_size - 2) + [1]]*(y_size - 2) + [[1]*x_size]
     arena = Arena(smap)
 
@@ -274,6 +297,15 @@ if __name__ == '__main__' :
 
     bots = []
     used_pos = {}
+
+    # TEST THE SPECIAL CRASH CONDITION
+    go_on = COINFLIP.CP_Parser.parse_code("DEFAULT MOVE FORWARD;")
+    bot1 = Bot(go_on,'tom',position=(3,3),orientation=0)
+    bot2 = Bot(go_on,'jerry',position=(4,3),orientation=180)
+    bot3 = Bot(go_on,'jerry',position=(3,4),orientation=270)
+    bots = [bot1,bot2,bot3]
+    
+    '''
     for i in xrange(bots_par_team) :
         for player in progs.keys() :
             pos = None
@@ -281,7 +313,7 @@ if __name__ == '__main__' :
                 pos = (randint(1,x_size - 2), randint(1,y_size - 2))
             orient = randint(0,3) * 90
             bots.append( Bot(progs[player],player,position=pos,orientation=orient) )
-    
+    '''
     g = Game(arena,bots)
 
     from os import system
@@ -291,10 +323,15 @@ if __name__ == '__main__' :
 
     while not g.gameOver() :
 
-        sleep(0.5)
-#        raw_input()
+#        sleep(0.5)
+        raw_input()
         g.turn()
         system('clear')
         print g.prettyPrint()
 
     print "\n{} WON THE MATCH!".format(g.bots[0].player)
+
+
+
+
+
