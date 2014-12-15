@@ -1,9 +1,21 @@
+from random import randint
 
-class EvaluBot(Bot) :
+class Bot :
+    def __init__(self,program,player,game=None,position=None,orientation=None,FOV=2,fire_range=4) :
+        self.program = program
+        self.player = player
+        self.game = game
+        self.position = position
+        self.orientation = orientation
+        self.FOV = FOV
+        self.fire_range = fire_range
+
+
+class EvalBot(Bot) :
     
     def __init__(self,program,player,game=None,position=None,orientation=None,FOV=2,fire_range=4) :
 
-        super(EvaluBot,self).__init__(program,player,game,position,orientation,FOV,fire_range)
+        Bot.__init__(self,program,player,game,position,orientation,FOV,fire_range)
         self.status = 'OPERATIVE'
         self.action = 'WAIT'
 
@@ -49,16 +61,6 @@ class EvaluBot(Bot) :
             self.action = 'WAIT'
         except BotException :
             self.status = 'SYS FAULT'
-
-class Bot :
-    def __init__(self,program,player,game=None,position=None,orientation=None,FOV=2,fire_range=4) :
-        self.program = program
-        self.player = player
-        self.game = game
-        self.position = position
-        self.orientation = orientation
-        self.FOV = FOV
-        self.fire_range = fire_range
 
 class BotException (Exception) :
     def __init__(self,msg) :

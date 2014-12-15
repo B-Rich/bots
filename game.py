@@ -1,5 +1,5 @@
 
-class Game :
+class EvalGame :
 
     def __init__(self,arena,bots) :
         self.arena = arena
